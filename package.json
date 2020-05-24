@@ -1,0 +1,16 @@
+{
+  "name": "hoh",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "index.js",
+  "author": "Dallin Osmun",
+  "license": "MIT",
+  "bin": {
+    "hoh": "./index.js"
+  },
+  "dependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/plugin-transform-react-jsx": "^7.9.4",
+    "es-module-lexer": "^0.3.19"
+  }
+}
