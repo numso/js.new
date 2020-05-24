@@ -10,11 +10,11 @@ import cp from '@babel/plugin-syntax-class-properties'
 const BASE = path.join(process.cwd(), process.argv[2] || '.')
 const c = { plugins: [jsx, cp] }
 const mimedb = { '.html': 'text/html', '.js': 'application/javascript' }
+const indexFile = fs.readFileSync(path.join(BASE, 'index.html'), 'utf8')
 
 const server = http.createServer((req, res) => {
-  if (req.url === '/') req.url = '/index.html'
   const fullPath = path.join(BASE, req.url)
-  if (!checkFile(fullPath)) return res.writeHead(404).end()
+  if (!checkFile(fullPath)) return send(res, indexFile, mimedb['.html'])
   let ext = getExt(path.extname(fullPath))
   let contents = fs.readFileSync(fullPath, 'utf8')
   if (ext === '.json') [ext, contents] = ['.js', `export default ${contents}`]
@@ -26,10 +26,7 @@ const server = http.createServer((req, res) => {
       contents = contents.slice(0, s) + rewrite(name, req) + contents.slice(e)
     })
   }
-  const mime = mimedb[ext]
-  if (!mime) console.warn(`missing mime type for ${ext}`)
-  if (mime) res.setHeader('Content-Type', mime)
-  res.end(contents)
+  send(res, contents, mimedb[ext], ext)
 })
 
 const getExt = ext => (ext === '.jsx' ? '.js' : ext)
@@ -45,6 +42,10 @@ const rewrite = (name, { url }) => {
   }
   console.warn(`missing file "${name}" requested by "${path.join(BASE, url)}"`)
   return name
+}
+const send = (res, contents, mime, ext) => {
+  if (!mime) console.warn(`missing mime type for ${ext}`)
+  res.writeHead(200, { 'Content-Type': mime }).end(contents)
 }
 
 lexer.init.then(() =>
