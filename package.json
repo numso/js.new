@@ -1,6 +1,6 @@
 {
   "name": "hoh",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "main": "index.js",
   "author": "Dallin Osmun",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.9.6",
+    "@babel/plugin-syntax-class-properties": "7.8.3",
     "@babel/plugin-transform-react-jsx": "^7.9.4",
     "es-module-lexer": "^0.3.19"
   }
