@@ -46,7 +46,7 @@ import.meta.hot.accept(({ module }) => {
       // TODO:: Test out dynamic imports. what happens?
       const [name, isLocal] = rewrite(contents.substring(s, e), req)
       if (isLocal) parsedImports.push(path.join(path.dirname(req.url), name))
-      contents = contents.slice(0, s) + rewrite(name, req) + contents.slice(e)
+      contents = contents.slice(0, s) + name + contents.slice(e)
     })
     const isHmrEnabled = contents.includes('import.meta.hot')
     if (isHmrEnabled) {
