@@ -11,7 +11,10 @@
   "dependencies": {
     "@babel/core": "^7.9.6",
     "@babel/plugin-syntax-class-properties": "7.8.3",
+    "@babel/plugin-syntax-import-meta": "7.8.3",
     "@babel/plugin-transform-react-jsx": "^7.9.4",
-    "es-module-lexer": "^0.3.19"
+    "chokidar": "3.4.0",
+    "es-module-lexer": "^0.3.19",
+    "ws": "7.3.0"
   }
 }
