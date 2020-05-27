@@ -11,6 +11,7 @@ import babel from '@babel/core'
 import bblJsx from '@babel/plugin-transform-react-jsx'
 import bblCp from '@babel/plugin-syntax-class-properties'
 import bblMeta from '@babel/plugin-syntax-import-meta'
+import bblRR from 'react-refresh/babel.js'
 import { EsmHmrEngine } from './esm-hmr/server.js'
 
 const p = process.argv[2] || '.'
@@ -25,9 +26,36 @@ if (!fs.existsSync(BASE)) {
   })
 }
 
-const c = { plugins: [bblJsx, bblCp, bblMeta] }
+const c = { plugins: [bblJsx, bblCp, bblMeta, bblRR] }
 const mimedb = { '.html': 'text/html', '.js': 'application/javascript' }
-const indexFile = fs.readFileSync(path.join(BASE, 'index.html'), 'utf8')
+const reactRefreshCode = fs
+  .readFileSync(
+    path.join(
+      __dirname,
+      'node_modules',
+      'react-refresh',
+      'cjs',
+      'react-refresh-runtime.development.js'
+    ),
+    'utf8'
+  )
+  .replace(`process.env.NODE_ENV`, JSON.stringify('development'))
+const indexFile = fs
+  .readFileSync(path.join(BASE, 'index.html'), 'utf8')
+  .replace(
+    /<body.*?>/,
+    `$&
+  <script>
+function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
+const exports = {}
+${reactRefreshCode}
+exports.performReactRefresh = debounce(exports.performReactRefresh, 30)
+window.$RefreshRuntime$ = exports
+window.$RefreshRuntime$.injectIntoGlobalHook(window)
+window.$RefreshReg$ = () => {}
+window.$RefreshSig$ = () => type => type
+  </script>`
+  )
 const hmrClient = fs.readFileSync(
   path.join(__dirname, './esm-hmr/client.js'),
   'utf8'
@@ -63,13 +91,33 @@ import.meta.hot.accept(({ module }) => {
     contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
     const imports = lexer.parse(contents, fullPath)[0].reverse()
     const parsedImports = []
+    let isReact = false
     imports.forEach(({ s, e, d }) => {
       if (d === -2) return
+      if (contents.substring(s, e) === 'react') isReact = true
       // TODO:: Test out dynamic imports. what happens?
       const [name, isLocal] = rewrite(contents.substring(s, e), req)
+      // TODO:: append .$hoh$.js if it isn't a js or jsx file
+      // TODO:: check for that at the top and do special stuff to make everything work
+      // TODO:: then you can proxy images and stuff down. yay.
       if (isLocal) parsedImports.push(path.join(path.dirname(req.url), name))
       contents = contents.slice(0, s) + name + contents.slice(e)
     })
+    if (isReact) {
+      contents = `var $RefreshRegPrev$ = window.$RefreshReg$
+var $RefreshSigPrev$ = window.$RefreshSig$
+window.$RefreshReg$ = (type, id) => {
+  window.$RefreshRuntime$.register(type, ${JSON.stringify(req.url)} + " " + id)
+}
+window.$RefreshSig$ = window.$RefreshRuntime$.createSignatureFunctionForTransform
+${contents}
+window.$RefreshReg$ = $RefreshRegPrev$
+window.$RefreshSig$ = $RefreshSigPrev$
+import.meta.hot.accept(() => {
+  window.$RefreshRuntime$.performReactRefresh()
+})
+`
+    }
     const isHmrEnabled = contents.includes('import.meta.hot')
     if (isHmrEnabled) {
       contents = `import * as $hoh_hmr$ from '/hmr.js'
