@@ -4,6 +4,7 @@ import http from 'http'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import chokidar from 'chokidar'
+import open from 'open'
 import lexer from 'es-module-lexer'
 import babel from '@babel/core'
 import bblJsx from '@babel/plugin-transform-react-jsx'
@@ -109,3 +110,5 @@ const send = (res, contents, ext) => {
 lexer.init.then(() =>
   server.listen(3000, () => console.log('Listening on 3000'))
 )
+
+open('http://localhost:3000', { wait: false, url: true }).catch(() => {})
