@@ -41,6 +41,16 @@ const server = http.createServer((req, res) => {
   if (!checkFile(fullPath)) return send(res, indexFile, '.html')
   let ext = getExt(path.extname(fullPath))
   let contents = fs.readFileSync(fullPath, 'utf8')
+  if (ext === '.css') {
+    ext = '.js'
+    contents = `const styleTag = document.createElement('style')
+styleTag.appendChild(document.createTextNode(${JSON.stringify(contents)}))
+document.head.appendChild(styleTag)
+import.meta.hot.accept()
+import.meta.hot.dispose(() => {
+  document.head.removeChild(styleTag)
+})`
+  }
   if (ext === '.json') {
     ext = '.js'
     contents = `let json = ${contents}
