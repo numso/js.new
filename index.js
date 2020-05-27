@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import childProcess from 'child_process'
 import fs from 'fs'
 import http from 'http'
 import path from 'path'
@@ -113,3 +114,7 @@ lexer.init.then(() =>
 )
 
 open('http://localhost:3000', { wait: false, url: true }).catch(() => {})
+childProcess
+  .spawn('code', [BASE], { detached: true, stdio: 'ignore' })
+  .on('error', () => null)
+  .unref()
