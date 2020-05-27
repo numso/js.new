@@ -13,6 +13,15 @@ import { EsmHmrEngine } from './esm-hmr/server.js'
 
 const BASE = path.join(process.cwd(), process.argv[2] || '.')
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+if (!fs.existsSync(BASE)) {
+  fs.mkdirSync(BASE)
+  const templatePath = path.join(__dirname, 'template', 'react')
+  fs.readdirSync(templatePath).forEach(file => {
+    fs.copyFileSync(path.join(templatePath, file), path.join(BASE, file))
+  })
+}
+
 const c = { plugins: [bblJsx, bblCp, bblMeta] }
 const mimedb = { '.html': 'text/html', '.js': 'application/javascript' }
 const indexFile = fs.readFileSync(path.join(BASE, 'index.html'), 'utf8')
