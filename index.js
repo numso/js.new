@@ -12,7 +12,8 @@ import bblCp from '@babel/plugin-syntax-class-properties'
 import bblMeta from '@babel/plugin-syntax-import-meta'
 import { EsmHmrEngine } from './esm-hmr/server.js'
 
-const BASE = path.join(process.cwd(), process.argv[2] || '.')
+const p = process.argv[2] || '.'
+const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 if (!fs.existsSync(BASE)) {
