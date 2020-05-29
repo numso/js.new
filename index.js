@@ -18,8 +18,8 @@ const p = process.argv[2] || '.'
 const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-if (!fs.existsSync(BASE)) {
-  fs.mkdirSync(BASE)
+if (!fs.existsSync(BASE)) fs.mkdirSync(BASE)
+if (fs.readdirSync(BASE).length === 0) {
   const templatePath = path.join(__dirname, 'template', 'react')
   fs.readdirSync(templatePath).forEach(file => {
     fs.copyFileSync(path.join(templatePath, file), path.join(BASE, file))
