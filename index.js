@@ -5,6 +5,7 @@ import http from 'http'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import chokidar from 'chokidar'
+import mime from 'mime-types'
 import open from 'open'
 import lexer from 'es-module-lexer'
 import babel from '@babel/core'
@@ -17,6 +18,7 @@ import { EsmHmrEngine } from './esm-hmr/server.js'
 const p = process.argv[2] || '.'
 const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SUFFIX = '.$hoh$.js'
 
 if (!fs.existsSync(BASE)) fs.mkdirSync(BASE)
 if (fs.readdirSync(BASE).length === 0) {
@@ -28,7 +30,6 @@ if (fs.readdirSync(BASE).length === 0) {
 
 // const c = { plugins: [bblJsx, bblCp, bblMeta, bblRR] }
 const c = { plugins: [bblJsx, bblCp, bblMeta] }
-const mimedb = { '.html': 'text/html', '.js': 'application/javascript' }
 // const reactRefreshCode = fs
 //   .readFileSync(
 //     path.join(
@@ -62,71 +63,77 @@ const hmrClient = fs.readFileSync(
 )
 const hmr = new EsmHmrEngine()
 
+const load = url => fs.readFileSync(path.join(BASE, url), 'utf8')
+const transformers = {
+  '.js': load,
+  '.jsx': load,
+  '.css': path => `const styleTag = document.createElement('style')
+  styleTag.appendChild(document.createTextNode(${JSON.stringify(load(path))}))
+  document.head.appendChild(styleTag)
+  import.meta.hot.accept()
+  import.meta.hot.dispose(() => {
+    document.head.removeChild(styleTag)
+  })`,
+  '.json': path => `let json = ${load(path)}
+  export default json
+  import.meta.hot.accept(({ module }) => {
+    json = module.default
+  })`,
+  '.jpg': path => `export default ${JSON.stringify(path)}`,
+  '.png': path => `export default ${JSON.stringify(path)}`,
+  '.bmp': path => `export default ${JSON.stringify(path)}`,
+  default: ext => () => `throw new Error("No transformer for ${ext} found")`
+}
+
 const server = http.createServer((req, res) => {
   req.url = req.url.split('?mtime')[0]
+  const isJS = req.url.endsWith('.js')
+  req.url = req.url.replace(SUFFIX, '')
   if (req.url === '/hmr.js') return send(res, hmrClient, '.js')
   const fullPath = path.join(BASE, req.url)
+  const ext = path.extname(fullPath)
   if (!checkFile(fullPath)) return send(res, indexFile, '.html')
-  let ext = getExt(path.extname(fullPath))
-  let contents = fs.readFileSync(fullPath, 'utf8')
-  if (ext === '.css') {
-    ext = '.js'
-    contents = `const styleTag = document.createElement('style')
-styleTag.appendChild(document.createTextNode(${JSON.stringify(contents)}))
-document.head.appendChild(styleTag)
-import.meta.hot.accept()
-import.meta.hot.dispose(() => {
-  document.head.removeChild(styleTag)
-})`
-  }
-  if (ext === '.json') {
-    ext = '.js'
-    contents = `let json = ${contents}
-export default json
-import.meta.hot.accept(({ module }) => {
-  json = module.default
-})`
-  }
-  if (ext === '.js') {
-    contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
-    const imports = lexer.parse(contents, fullPath)[0].reverse()
-    const parsedImports = []
-    let isReact = false
-    imports.forEach(({ s, e, d }) => {
-      if (d === -2) return
-      if (contents.substring(s, e) === 'react') isReact = true
-      // TODO:: Test out dynamic imports. what happens?
-      const [name, isLocal] = rewrite(contents.substring(s, e), req)
-      // TODO:: append .$hoh$.js if it isn't a js or jsx file
-      // TODO:: check for that at the top and do special stuff to make everything work
-      // TODO:: then you can proxy images and stuff down. yay.
-      if (isLocal) parsedImports.push(path.join(path.dirname(req.url), name))
-      contents = contents.slice(0, s) + name + contents.slice(e)
-    })
-    //     if (isReact) {
-    //       contents = `var $RefreshRegPrev$ = window.$RefreshReg$
-    // var $RefreshSigPrev$ = window.$RefreshSig$
-    // window.$RefreshReg$ = (type, id) => {
-    //   window.$RefreshRuntime$.register(type, ${JSON.stringify(req.url)} + " " + id)
-    // }
-    // window.$RefreshSig$ = window.$RefreshRuntime$.createSignatureFunctionForTransform
-    // ${contents}
-    // window.$RefreshReg$ = $RefreshRegPrev$
-    // window.$RefreshSig$ = $RefreshSigPrev$
-    // import.meta.hot.accept(() => {
-    //   window.$RefreshRuntime$.performReactRefresh()
-    // })
-    // `
-    //     }
-    const isHmrEnabled = contents.includes('import.meta.hot')
-    if (isHmrEnabled) {
-      contents = `import * as $hoh_hmr$ from '/hmr.js'
+  if (!isJS) return send(res, fs.readFileSync(fullPath), ext)
+  const transformer = transformers[ext] || transformers.default(ext)
+  let contents = transformer(req.url)
+  contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
+  const imports = lexer.parse(contents, fullPath)[0].reverse()
+  const parsedImports = []
+  let isReact = false
+  imports.forEach(({ s, e, d }) => {
+    if (d === -2) return
+    if (contents.substring(s, e) === 'react') isReact = true
+    // TODO:: Test out dynamic imports. what happens?
+    let [name, isLocal] = rewrite(contents.substring(s, e), req)
+    // TODO:: check for that at the top and do special stuff to make everything work
+    // TODO:: then you can proxy images and stuff down. yay.
+    if (isLocal) parsedImports.push(path.join(path.dirname(req.url), name))
+    if (isLocal && !name.endsWith('.js')) name = name + SUFFIX
+    contents = contents.slice(0, s) + name + contents.slice(e)
+  })
+  //     if (isReact) {
+  //       contents = `var $RefreshRegPrev$ = window.$RefreshReg$
+  // var $RefreshSigPrev$ = window.$RefreshSig$
+  // window.$RefreshReg$ = (type, id) => {
+  //   window.$RefreshRuntime$.register(type, ${JSON.stringify(req.url)} + " " + id)
+  // }
+  // window.$RefreshSig$ = window.$RefreshRuntime$.createSignatureFunctionForTransform
+  // ${contents}
+  // window.$RefreshReg$ = $RefreshRegPrev$
+  // window.$RefreshSig$ = $RefreshSigPrev$
+  // import.meta.hot.accept(() => {
+  //   window.$RefreshRuntime$.performReactRefresh()
+  // })
+  // `
+  //     }
+  const isHmrEnabled = contents.includes('import.meta.hot')
+  if (isHmrEnabled) {
+    contents = `import * as $hoh_hmr$ from '/hmr.js'
 import.meta.hot = $hoh_hmr$.createHotContext(import.meta.url)
 ${contents}`
-    }
-    hmr.setEntry(req.url, parsedImports, isHmrEnabled)
   }
-  send(res, contents, ext)
+  hmr.setEntry(req.url, parsedImports, isHmrEnabled)
+  send(res, contents, '.js')
 })
 
 function triggerHMR (url, visited) {
@@ -148,24 +155,21 @@ watcher.on('add', handleWatch)
 watcher.on('change', handleWatch)
 watcher.on('unlink', handleWatch)
 
-const getExt = ext => (ext === '.jsx' ? '.js' : ext)
 const checkFile = p => fs.existsSync(p) && fs.lstatSync(p).isFile()
 const rewrite = (name, { url }) => {
   if (name[0] !== '.') return [`https://cdn.pika.dev/${name}`, false]
   // TODO:: handle absolute paths better
   const base = path.join(BASE, path.dirname(url), name)
   if (checkFile(base)) return [name, true]
-  for (const ext of ['.js', '.jsx', '.json']) {
+  for (const ext in transformers) {
     if (checkFile(`${base}${ext}`)) return [`${name}${ext}`, true]
     if (checkFile(`${base}/index${ext}`)) return [`${name}/index${ext}`, true]
   }
   console.warn(`missing file "${name}" requested by "${path.join(BASE, url)}"`)
   return [name, false]
 }
-const send = (res, contents, ext) => {
-  if (!mimedb[ext]) console.warn(`missing mime type for ${ext}`)
-  res.writeHead(200, { 'Content-Type': mimedb[ext] }).end(contents)
-}
+const send = (res, contents, ext) =>
+  res.writeHead(200, { 'Content-Type': mime.lookup(ext) }).end(contents)
 
 lexer.init.then(() =>
   server.listen(3000, () => console.log('Listening on 3000'))
