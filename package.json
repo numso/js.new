@@ -6,6 +6,7 @@
   "author": "Dallin Osmun",
   "license": "MIT",
   "bin": {
+    "js.new": "./index.js",
     "hoh": "./index.js"
   },
   "dependencies": {
