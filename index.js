@@ -173,6 +173,6 @@ lexer.init.then(() =>
 
 open('http://localhost:3000', { wait: false, url: true }).catch(() => {})
 childProcess
-  .spawn('code', [BASE], { detached: true, stdio: 'ignore' })
+  .spawn('code', [BASE], { detached: true, stdio: 'ignore', shell: true })
   .on('error', () => null)
   .unref()
