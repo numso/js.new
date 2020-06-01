@@ -12,6 +12,7 @@ import babel from '@babel/core'
 import bblJsx from '@babel/plugin-transform-react-jsx'
 import bblCp from '@babel/plugin-syntax-class-properties'
 import bblMeta from '@babel/plugin-syntax-import-meta'
+import bblTS from '@babel/preset-typescript'
 // import bblRR from 'react-refresh/babel.js'
 import { EsmHmrEngine } from './esm-hmr/server.js'
 
@@ -28,8 +29,8 @@ if (fs.readdirSync(BASE).length === 0) {
   })
 }
 
-// const c = { plugins: [bblJsx, bblCp, bblMeta, bblRR] }
-const c = { plugins: [bblJsx, bblCp, bblMeta] }
+// const c = { plugins: [bblJsx, bblCp, bblMeta, bblRR], presets: [bblTS] }
+const c = { plugins: [bblJsx, bblCp, bblMeta], presets: [bblTS] }
 // const reactRefreshCode = fs
 //   .readFileSync(
 //     path.join(
@@ -67,6 +68,8 @@ const load = url => fs.readFileSync(path.join(BASE, url), 'utf8')
 const transformers = {
   '.js': load,
   '.jsx': load,
+  '.ts': load,
+  '.tsx': load,
   '.css': path => `const styleTag = document.createElement('style')
   styleTag.appendChild(document.createTextNode(${JSON.stringify(load(path))}))
   document.head.appendChild(styleTag)

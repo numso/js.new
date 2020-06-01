@@ -1,6 +1,6 @@
 {
   "name": "hoh",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "main": "index.js",
   "author": "Dallin Osmun",
@@ -10,12 +10,13 @@
     "hoh": "./index.js"
   },
   "dependencies": {
-    "@babel/core": "^7.9.6",
-    "@babel/plugin-syntax-class-properties": "7.8.3",
-    "@babel/plugin-syntax-import-meta": "7.8.3",
-    "@babel/plugin-transform-react-jsx": "^7.9.4",
+    "@babel/core": "^7.10.2",
+    "@babel/plugin-syntax-class-properties": "7.10.1",
+    "@babel/plugin-syntax-import-meta": "7.10.1",
+    "@babel/plugin-transform-react-jsx": "^7.10.1",
+    "@babel/preset-typescript": "7.10.1",
     "chokidar": "3.4.0",
-    "es-module-lexer": "^0.3.19",
+    "es-module-lexer": "^0.3.20",
     "mime-types": "^2.1.27",
     "open": "7.0.4",
     "react-refresh": "0.8.3",
