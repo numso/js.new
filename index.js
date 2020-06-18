@@ -1,24 +1,22 @@
 #!/usr/bin/env node
-import childProcess from 'child_process'
-import fs from 'fs'
-import http from 'http'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import chokidar from 'chokidar'
-import mime from 'mime-types'
-import open from 'open'
-import lexer from 'es-module-lexer'
-import babel from '@babel/core'
-import bblJsx from '@babel/plugin-transform-react-jsx'
-import bblCp from '@babel/plugin-syntax-class-properties'
-import bblMeta from '@babel/plugin-syntax-import-meta'
-import bblTS from '@babel/preset-typescript'
-// import bblRR from 'react-refresh/babel.js'
-import { EsmHmrEngine } from './esm-hmr/server.js'
+const childProcess = require('child_process')
+const fs = require('fs')
+const http = require('http')
+const path = require('path')
+const chokidar = require('chokidar')
+const mime = require('mime-types')
+const open = require('open')
+const lexer = require('es-module-lexer')
+const babel = require('@babel/core')
+const bblJsx = require('@babel/plugin-transform-react-jsx')
+const bblCp = require('@babel/plugin-syntax-class-properties')
+const bblMeta = require('@babel/plugin-syntax-import-meta')
+const bblTS = require('@babel/preset-typescript')
+// const bblRR = require('react-refresh/babel.js')
+const { EsmHmrEngine } = require('./esm-hmr/server.js')
 
 const p = process.argv[2] || '.'
 const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SUFFIX = '.$hoh$.js'
 
 if (!fs.existsSync(BASE)) fs.mkdirSync(BASE)
@@ -102,14 +100,12 @@ const server = http.createServer((req, res) => {
   contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
   const imports = lexer.parse(contents, fullPath)[0].reverse()
   const parsedImports = []
-  let isReact = false
+  // let isReact = false
   imports.forEach(({ s, e, d }) => {
     if (d === -2) return
-    if (contents.substring(s, e) === 'react') isReact = true
+    // if (contents.substring(s, e) === 'react') isReact = true
     // TODO:: Test out dynamic imports. what happens?
     let [name, isLocal] = rewrite(contents.substring(s, e), req)
-    // TODO:: check for that at the top and do special stuff to make everything work
-    // TODO:: then you can proxy images and stuff down. yay.
     if (isLocal) parsedImports.push(path.join(path.dirname(req.url), name))
     if (isLocal && !name.endsWith('.js')) name = name + SUFFIX
     contents = contents.slice(0, s) + name + contents.slice(e)

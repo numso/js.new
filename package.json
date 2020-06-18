@@ -1,13 +1,11 @@
 {
-  "name": "hoh",
-  "version": "0.0.8",
-  "type": "module",
+  "name": "js.new",
+  "version": "0.0.9",
   "main": "index.js",
   "author": "Dallin Osmun",
   "license": "MIT",
   "bin": {
-    "js.new": "./index.js",
-    "hoh": "./index.js"
+    "js.new": "./index.js"
   },
   "dependencies": {
     "@babel/core": "^7.10.2",

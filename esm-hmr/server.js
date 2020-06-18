@@ -1,5 +1,5 @@
-import WebSocket from 'ws'
-export class EsmHmrEngine {
+const WebSocket = require('ws')
+exports.EsmHmrEngine = class EsmHmrEngine {
   constructor () {
     this.clients = new Set()
     this.dependencyTree = new Map()
