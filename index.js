@@ -17,11 +17,11 @@ const { EsmHmrEngine } = require('./esm-hmr/server.js')
 
 const p = process.argv[2] || '.'
 const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
+const templatePath = path.join(__dirname, 'template', 'react')
 const SUFFIX = '.$hoh$.js'
 
 if (!fs.existsSync(BASE)) fs.mkdirSync(BASE)
 if (fs.readdirSync(BASE).length === 0) {
-  const templatePath = path.join(__dirname, 'template', 'react')
   fs.readdirSync(templatePath).forEach(file => {
     fs.copyFileSync(path.join(templatePath, file), path.join(BASE, file))
   })
@@ -41,21 +41,31 @@ const c = { plugins: [bblJsx, bblCp, bblMeta], presets: [bblTS] }
 //     'utf8'
 //   )
 //   .replace(`process.env.NODE_ENV`, JSON.stringify('development'))
-const indexFile = fs.readFileSync(path.join(BASE, 'index.html'), 'utf8')
-//   .replace(
-//     /<body.*?>/,
-//     `$&
-//   <script>
-// function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
-// const exports = {}
-// ${reactRefreshCode}
-// exports.performReactRefresh = debounce(exports.performReactRefresh, 30)
-// window.$RefreshRuntime$ = exports
-// window.$RefreshRuntime$.injectIntoGlobalHook(window)
-// window.$RefreshReg$ = () => {}
-// window.$RefreshSig$ = () => type => type
-//   </script>`
-//   )
+const ourIndex = fs.readFileSync(path.join(templatePath, 'index.html'), 'utf8')
+let indexFile
+const checkFile = p => fs.existsSync(p) && fs.lstatSync(p).isFile()
+const tryLoadIndex = () => {
+  const p = path.join(BASE, 'index.html')
+  indexFile = (checkFile(p) ? fs.readFileSync(p, 'utf8') : ourIndex).replace(
+    /<body.*?>/,
+    '$&\n    <script type="module" src="/hmr.js"></script>'
+  )
+  //   .replace(
+  //     /<body.*?>/,
+  //     `$&
+  //   <script>
+  // function debounce(e,t){let u;return()=>{clearTimeout(u),u=setTimeout(e,t)}}
+  // const exports = {}
+  // ${reactRefreshCode}
+  // exports.performReactRefresh = debounce(exports.performReactRefresh, 30)
+  // window.$RefreshRuntime$ = exports
+  // window.$RefreshRuntime$.injectIntoGlobalHook(window)
+  // window.$RefreshReg$ = () => {}
+  // window.$RefreshSig$ = () => type => type
+  //   </script>`
+  //   )
+}
+tryLoadIndex()
 const hmrClient = fs.readFileSync(
   path.join(__dirname, './esm-hmr/client.js'),
   'utf8'
@@ -148,13 +158,15 @@ function triggerHMR (url, visited) {
     hmr.broadcastMessage({ type: 'reload' })
   }
 }
-const handleWatch = file => triggerHMR(file.replace(BASE, ''), new Set())
+const handleWatch = file => {
+  if (file === path.join(BASE, 'index.html')) tryLoadIndex()
+  triggerHMR(file.replace(BASE, ''), new Set())
+}
 const watcher = chokidar.watch(BASE, { persistent: true, ignoreInitial: true })
 watcher.on('add', handleWatch)
 watcher.on('change', handleWatch)
 watcher.on('unlink', handleWatch)
 
-const checkFile = p => fs.existsSync(p) && fs.lstatSync(p).isFile()
 const rewrite = (name, { url }) => {
   if (name[0] !== '.') return [`https://cdn.pika.dev/${name}`, false]
   // TODO:: handle absolute paths better
