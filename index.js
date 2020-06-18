@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const Convert = require('ansi-to-html')
 const childProcess = require('child_process')
 const fs = require('fs')
 const http = require('http')
@@ -18,7 +19,7 @@ const { EsmHmrEngine } = require('./esm-hmr/server.js')
 const p = process.argv[2] || '.'
 const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
 const templatePath = path.join(__dirname, 'template', 'react')
-const SUFFIX = '.$hoh$.js'
+const SUFFIX = '.$js.new$.js'
 
 if (!fs.existsSync(BASE)) fs.mkdirSync(BASE)
 if (fs.readdirSync(BASE).length === 0) {
@@ -107,7 +108,11 @@ const server = http.createServer((req, res) => {
   if (!isJS) return send(res, fs.readFileSync(fullPath), ext)
   const transformer = transformers[ext] || transformers.default(ext)
   let contents = transformer(req.url)
-  contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
+  try {
+    contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
+  } catch (error) {
+    contents = buildError(error)
+  }
   const imports = lexer.parse(contents, fullPath)[0].reverse()
   const parsedImports = []
   // let isReact = false
@@ -137,8 +142,8 @@ const server = http.createServer((req, res) => {
   //     }
   const isHmrEnabled = contents.includes('import.meta.hot')
   if (isHmrEnabled) {
-    contents = `import * as $hoh_hmr$ from '/hmr.js'
-import.meta.hot = $hoh_hmr$.createHotContext(import.meta.url)
+    contents = `import * as $js_new_hmr$ from '/hmr.js'
+import.meta.hot = $js_new_hmr$.createHotContext(import.meta.url)
 ${contents}`
   }
   hmr.setEntry(req.url, parsedImports, isHmrEnabled)
@@ -191,3 +196,18 @@ childProcess
   .spawn('code', [BASE], { detached: true, stdio: 'ignore', shell: true })
   .on('error', () => null)
   .unref()
+
+const fg = '#CCC'
+const bg = '#0C0C0C'
+const colors = {
+  1: '#FF3366',
+  2: '#13A10E',
+  3: '#C19C00',
+  6: '#3A96DD',
+  8: '#767676'
+}
+const convert = new Convert({ fg, bg, colors })
+const buildError = error => `const pre = document.createElement('pre')
+pre.style = "font-family: 'Cascadia Code', monospace; background: ${bg}; color: ${fg}; padding: 32px;"
+pre.innerHTML = \`${convert.toHtml(error.toString().replace(/\\/g, '\\\\'))}\`
+document.body.append(pre)`
