@@ -121,6 +121,7 @@ const server = http.createServer((req, res) => {
   req.url = req.url.split('?mtime')[0]
   const isJS = req.url.endsWith('.js')
   req.url = req.url.replace(SUFFIX, '')
+  if (req.url.includes('$js_new_404$')) return res.writeHead(404).end()
   if (req.url === '/hmr.js') return send(res, hmrClient, '.js')
   const fullPath = path.join(BASE, req.url)
   const ext = path.extname(fullPath)
@@ -203,8 +204,8 @@ const rewrite = (name, { url }) => {
     if (checkFile(`${base}${ext}`)) return [`${name}${ext}`, true]
     if (checkFile(`${base}/index${ext}`)) return [`${name}/index${ext}`, true]
   }
-  console.warn(`missing file "${name}" requested by "${path.join(BASE, url)}"`)
-  return [name, false]
+  console.error(`missing file "${name}" requested by "${path.join(BASE, url)}"`)
+  return [`${name}?$js_new_404$`, false]
 }
 const send = (res, contents, ext) =>
   res.writeHead(200, { 'Content-Type': mime.lookup(ext) }).end(contents)
