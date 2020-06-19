@@ -114,7 +114,11 @@ const transformers = {
   '.jpg': path => `export default ${JSON.stringify(path)}`,
   '.png': path => `export default ${JSON.stringify(path)}`,
   '.bmp': path => `export default ${JSON.stringify(path)}`,
-  default: ext => () => `throw new Error("No transformer for ${ext} found")`
+  default: ext => path => {
+    const error = `No transformer for ${ext} found: requested by ${path}`
+    console.error(error)
+    return `throw new Error("${error}")`
+  }
 }
 
 const server = http.createServer((req, res) => {
@@ -204,7 +208,7 @@ const rewrite = (name, { url }) => {
     if (checkFile(`${base}${ext}`)) return [`${name}${ext}`, true]
     if (checkFile(`${base}/index${ext}`)) return [`${name}/index${ext}`, true]
   }
-  console.error(`missing file "${name}" requested by "${path.join(BASE, url)}"`)
+  console.error(`missing file "${name}" requested by ${path.join(BASE, url)}`)
   return [`${name}?$js_new_404$`, false]
 }
 const send = (res, contents, ext) =>
