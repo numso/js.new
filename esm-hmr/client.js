@@ -47,7 +47,7 @@ export function createHotContext (fullUrl) {
 }
 async function applyUpdate (id) {
   const state = REGISTERED_MODULES[id]
-  // if (!state || !id.endsWith('.js')) return false
+  if (!state || !id.endsWith('.js')) return false
   if (!state) return false
   if (state.isDeclined) return false
   const data = {}
@@ -80,6 +80,8 @@ socket.addEventListener('message', ({ data: _data }) => {
     reload()
     return
   }
+  // Added the following line:
+  if (data.type === 'error') return window.$js_new_error$(data.error)
   if (data.type !== 'update') {
     debug('message: unknown', data)
     return

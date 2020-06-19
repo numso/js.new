@@ -19,7 +19,7 @@ const { EsmHmrEngine } = require('./esm-hmr/server.js')
 const p = process.argv[2] || '.'
 const BASE = path.isAbsolute(p) ? p : path.join(process.cwd(), p)
 const templatePath = path.join(__dirname, 'template', 'react')
-const SUFFIX = '.$js.new$.js'
+const SUFFIX = '.$js_new$.js'
 
 if (!fs.existsSync(BASE)) fs.mkdirSync(BASE)
 if (fs.readdirSync(BASE).length === 0) {
@@ -27,6 +27,18 @@ if (fs.readdirSync(BASE).length === 0) {
     fs.copyFileSync(path.join(templatePath, file), path.join(BASE, file))
   })
 }
+
+const fg = '#CCC'
+const bg = '#0C0C0C'
+const colors = {
+  1: '#FF3366',
+  2: '#13A10E',
+  3: '#C19C00',
+  6: '#3A96DD',
+  8: '#767676'
+}
+const convert = new Convert({ fg, bg, colors })
+const fmt = error => convert.toHtml(error.toString())
 
 // const c = { plugins: [bblJsx, bblCp, bblMeta, bblRR], presets: [bblTS] }
 const c = { plugins: [bblJsx, bblCp, bblMeta], presets: [bblTS] }
@@ -49,7 +61,15 @@ const tryLoadIndex = () => {
   const p = path.join(BASE, 'index.html')
   indexFile = (checkFile(p) ? fs.readFileSync(p, 'utf8') : ourIndex).replace(
     /<body.*?>/,
-    '$&\n    <script type="module" src="/hmr.js"></script>'
+    `$&\n    <script>
+      window.$js_new_error$ = error => {
+        const pre = document.createElement('pre')
+        pre.style = "font-family: 'Cascadia Code', monospace; background: ${bg}; color: ${fg}; padding: 32px; margin: 0; height: 100vh; box-sizing: border-box;"
+        pre.innerHTML = error
+        document.body.replaceWith(pre)
+      }
+    </script>
+    <script type="module" src="/hmr.js"></script>`
   )
   //   .replace(
   //     /<body.*?>/,
@@ -111,7 +131,9 @@ const server = http.createServer((req, res) => {
   try {
     contents = babel.transformSync(contents, { filename: fullPath, ...c }).code
   } catch (error) {
-    contents = buildError(error)
+    console.error(error)
+    contents = `window.$js_new_error$(\`${fmt(error).replace(/\\/g, '\\\\')}\`)`
+    hmr.broadcastMessage({ type: 'error', error: fmt(error) })
   }
   const imports = lexer.parse(contents, fullPath)[0].reverse()
   const parsedImports = []
@@ -196,18 +218,3 @@ childProcess
   .spawn('code', [BASE], { detached: true, stdio: 'ignore', shell: true })
   .on('error', () => null)
   .unref()
-
-const fg = '#CCC'
-const bg = '#0C0C0C'
-const colors = {
-  1: '#FF3366',
-  2: '#13A10E',
-  3: '#C19C00',
-  6: '#3A96DD',
-  8: '#767676'
-}
-const convert = new Convert({ fg, bg, colors })
-const buildError = error => `const pre = document.createElement('pre')
-pre.style = "font-family: 'Cascadia Code', monospace; background: ${bg}; color: ${fg}; padding: 32px;"
-pre.innerHTML = \`${convert.toHtml(error.toString().replace(/\\/g, '\\\\'))}\`
-document.body.append(pre)`
