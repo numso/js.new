@@ -200,7 +200,7 @@ watcher.on('change', handleWatch)
 watcher.on('unlink', handleWatch)
 
 const rewrite = (name, { url }) => {
-  if (name[0] !== '.') return [`https://cdn.pika.dev/${name}`, false]
+  if (name[0] !== '.') return [`https://cdn.skypack.dev/${name}`, false]
   // TODO:: handle absolute paths better
   const base = path.join(BASE, path.dirname(url), name)
   if (checkFile(base)) return [name, true]
