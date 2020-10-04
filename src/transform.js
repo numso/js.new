@@ -9,39 +9,52 @@ const lexer = require('es-module-lexer')
 
 const { fileExists, SUFFIX, NOT_FOUND } = require('./common')
 
-module.exports = function transform ({ BASE, hmr, config, dev }) {
-  return (req, res) => {
-    const convert = new Convert(config.theme)
-    let contents = build(req.url, req.filePath, config, dev)
-    try {
-      contents = babel.transformSync(contents, {
-        filename: req.filePath,
-        plugins: [bblJsx, bblCp, bblMeta],
-        presets: [bblTS]
-      }).code
-    } catch (error) {
-      console.error(error)
-      const pretty = convert.toHtml(error.toString())
-      contents = `window.$js_new_error$(\`${pretty.replace(/\\/g, '\\\\')}\`)`
-      hmr.error(pretty)
-    }
-
-    const imports = lexer.parse(contents, req.filePath)[0].reverse()
-    const parsedImports = []
-    imports.forEach(({ s, e, d }) => {
-      if (d === -2) return
-      // TODO:: Test out dynamic imports. what happens?
-      let [name, isLocal] = rewrite(BASE, contents.substring(s, e), req, config)
-      if (isLocal) parsedImports.push(path.join(path.dirname(req.url), name))
-      if (isLocal && !name.endsWith('.js')) name = name + SUFFIX
-      contents = contents.slice(0, s) + name + contents.slice(e)
-    })
-    contents = hmr.apply(contents, req.originalUrl, parsedImports)
+exports.transformMW = transformMW
+function transformMW ({ BASE, hmr, config, dev }) {
+  let convert = new Convert(config.theme)
+  const onError = error => {
+    console.error(error)
+    const pretty = convert.toHtml(error.toString())
+    hmr.error(pretty)
+    return `window.$js_new_error$(\`${pretty.replace(/\\/g, '\\\\')}\`)`
+  }
+  const opts = { base: BASE, config, dev, onError }
+  return ({ url, filePath, originalUrl }, res) => {
+    convert = new Convert(config.theme)
+    let [contents, imports] = transform(url, filePath, opts)
+    contents = hmr.apply(contents, originalUrl, imports)
     res.send(contents, '.js')
   }
 }
 
-const rewrite = (BASE, name, { url }, config) => {
+exports.transform = transform
+
+function transform (url, filePath, { base: BASE, config, dev, onError }) {
+  let contents = build(url, filePath, config, dev)
+  try {
+    contents = babel.transformSync(contents, {
+      filename: filePath,
+      plugins: [bblJsx, bblCp, bblMeta],
+      presets: [bblTS]
+    }).code
+  } catch (error) {
+    contents = onError(error)
+  }
+
+  const imports = lexer.parse(contents, filePath)[0].reverse()
+  const parsedImports = []
+  imports.forEach(({ s, e, d }) => {
+    if (d === -2) return
+    // TODO:: Test out dynamic imports. what happens?
+    let [name, isLocal] = rewrite(BASE, contents.substring(s, e), url, config)
+    if (isLocal) parsedImports.push(path.join(path.dirname(url), name))
+    if (isLocal && !name.endsWith('.js')) name = name + SUFFIX
+    contents = contents.slice(0, s) + name + contents.slice(e)
+  })
+  return [contents, parsedImports]
+}
+
+const rewrite = (BASE, name, url, config) => {
   if (name[0] !== '.') return [`https://cdn.skypack.dev/${name}`, false]
   // TODO:: handle absolute paths better
   const base = path.join(BASE, path.dirname(url), name)

@@ -22,15 +22,21 @@ const argv = require('yargs')
       })
   })
   .command('build [path]', 'build a project', yargs => {
-    yargs.positional('path', {
-      describe: 'Path to your project',
-      type: 'string',
-      default: '.'
-    })
+    yargs
+      .positional('path', {
+        describe: 'Path to your project',
+        type: 'string',
+        default: '.'
+      })
+      .option('output', {
+        alias: 'o',
+        describe: 'Output directory',
+        default: '.dist'
+      })
   }).argv
 
 if (argv._.includes('build')) {
-  console.log({ cmd: 'BUILD', path: argv.path })
+  require('./build')(argv.path, argv.output)
 } else {
   require('./dev')(argv.path, argv.template, argv.port)
 }

@@ -10,7 +10,7 @@ const path = require('path')
 const { fileExists, SUFFIX, NOT_FOUND } = require('./common')
 const getConfig = require('./config')
 const startHMR = require('./hmr')
-const transform = require('./transform')
+const { transformMW } = require('./transform')
 
 module.exports = async (dir, template, port) => {
   await lexer.init
@@ -62,7 +62,7 @@ module.exports = async (dir, template, port) => {
     if (hmr.mount(req, res)) return
     if (!fileExists(req.filePath)) return res.send(indexFile, '.html')
     if (!req.originalUrl.endsWith('.js')) return res.sendFile(req.filePath)
-    transform({ BASE, hmr, config, dev: true })(req, res)
+    transformMW({ BASE, hmr, config, dev: true })(req, res)
   })
   server.listen(port, () => console.log(`Listening on ${port}`))
 
