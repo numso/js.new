@@ -1,8 +1,19 @@
 const fs = require('fs')
+const path = require('path')
 
 const load = ({ filePath }) => fs.readFileSync(filePath, 'utf8')
 
 const loadPath = ({ url }) => `export default ${JSON.stringify(url)}`
+
+const loadMacro = ({ filePath, babel }) => {
+  const contents = fs.readFileSync(filePath, 'utf8')
+  /* eslint-disable-next-line no-eval */
+  return eval(`
+    __dirname="${path.dirname(filePath)}"
+    __filename="${filePath}"
+    ${babel(contents)}
+  `)
+}
 
 const css = ({ filePath, dev }) => {
   const contents = fs.readFileSync(filePath, 'utf8')
@@ -48,6 +59,8 @@ module.exports = () => ({
     }
   },
   builders: {
+    '.macro.js': loadMacro,
+    '.macro.ts': loadMacro,
     '.js': load,
     '.jsx': load,
     '.ts': load,

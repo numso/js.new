@@ -3,6 +3,7 @@ const bblJsx = require('@babel/plugin-transform-react-jsx')
 const bblCp = require('@babel/plugin-syntax-class-properties')
 const bblMeta = require('@babel/plugin-syntax-import-meta')
 const bblTS = require('@babel/preset-typescript')
+const bblIE = require('@babel/plugin-transform-modules-commonjs')
 const Convert = require('ansi-to-html')
 const path = require('path')
 const lexer = require('es-module-lexer')
@@ -30,8 +31,9 @@ function transformMW ({ BASE, hmr, config, dev }) {
 exports.transform = transform
 
 function transform (url, filePath, { base: BASE, config, dev, onError }) {
-  let contents = build(url, filePath, config, dev)
+  let contents
   try {
+    contents = build(url, filePath, config, dev)
     contents = babel.transformSync(contents, {
       filename: filePath,
       plugins: [bblJsx, bblCp, bblMeta],
@@ -82,5 +84,12 @@ function build (url, filePath, config, dev) {
       break
     }
   }
-  return fn({ url, filePath, dev })
+  return fn({ url, filePath, dev, babel: babelMacro(filePath) })
 }
+
+const babelMacro = filename => contents =>
+  babel.transformSync(contents, {
+    filename,
+    plugins: [bblIE, bblJsx, bblCp, bblMeta],
+    presets: [bblTS]
+  }).code

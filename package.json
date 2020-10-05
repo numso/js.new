@@ -11,6 +11,7 @@
     "@babel/core": "^7.10.2",
     "@babel/plugin-syntax-class-properties": "7.10.1",
     "@babel/plugin-syntax-import-meta": "7.10.1",
+    "@babel/plugin-transform-modules-commonjs": "7.10.1",
     "@babel/plugin-transform-react-jsx": "^7.10.1",
     "@babel/preset-typescript": "7.10.1",
     "ansi-to-html": "^0.6.14",
