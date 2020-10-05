@@ -58,7 +58,7 @@ function transform (url, filePath, { base: BASE, config, dev, onError }) {
 
 const rewrite = (BASE, name, url, config) => {
   if (name[0] !== '.') return [`https://cdn.skypack.dev/${name}`, false]
-  // TODO:: handle absolute paths better
+  // TODO:: handle local imports with absolute paths (starts with /)
   const base = path.join(BASE, path.dirname(url), name)
   if (fileExists(base)) return [name, true]
   for (const ext in config.builders) {
@@ -70,10 +70,7 @@ const rewrite = (BASE, name, url, config) => {
 }
 
 const notFound = ({ url }) => {
-  // TODO:: if !dev fail the build
-  const error = `No builder found for ${url}`
-  console.error(error)
-  return `throw new Error("${error}")`
+  throw new Error(`No builder found for ${url}`)
 }
 
 function build (url, filePath, config, dev) {
