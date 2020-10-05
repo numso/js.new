@@ -7,7 +7,7 @@ const { fileExists, SUFFIX } = require('./common')
 const getConfig = require('./config')
 const { transform } = require('./transform')
 
-const configPath = a => (path.isAbsolute(a) ? a : path.join(process.cwd(), a))
+const configPath = (a, b) => (path.isAbsolute(a) ? a : path.join(b, a))
 
 const onError = error => {
   console.error(error)
@@ -16,7 +16,7 @@ const onError = error => {
 
 module.exports = async dir => {
   await lexer.init
-  const base = configPath(dir)
+  const base = configPath(dir, process.cwd())
 
   let config = getConfig()
   const customizePath = path.join(base, '.js.new.js')
@@ -26,18 +26,19 @@ module.exports = async dir => {
     onError(error)
   }
 
-  const outDir = configPath(config.outputDir)
+  const outDir = configPath(config.outputDir, base)
 
   const opts = { base, config, dev: false, onError }
 
   fs.rmdirSync(outDir, { recursive: true })
-  // TODO:: Don't recurse through the outDir when copying over :P
-  recurseThrough(base, outDir, (inputFile, outputFile) => {
+  fs.mkdirSync(path.dirname(outDir), { recursive: true })
+  recurseThrough(config, base, outDir, (inputFile, outputFile, skip) => {
     if (!inputFile.endsWith('.js')) {
       // TODO:: Builder should define whether or not this should be output
       fs.copyFileSync(inputFile, outputFile)
       outputFile += SUFFIX
     }
+    if (skip) return
     const url = pathToFileURL(`${path.sep}${path.relative(base, inputFile)}`)
     const contents = transform(url.pathname, inputFile, opts)[0]
     fs.writeFileSync(outputFile, contents)
@@ -56,13 +57,15 @@ module.exports = async dir => {
   }
 }
 
-function recurseThrough (IN, OUT, cb) {
+function recurseThrough (config, IN, OUT, cb, outDir = OUT) {
+  if (IN === outDir) return
   fs.mkdirSync(OUT)
   fs.readdirSync(IN).forEach(file => {
-    if (file.startsWith('.')) return
+    if (config.ignore.test(file)) return
+    const skip = config.skipTransform.test(file)
     const next = path.join(IN, file)
     const nextOut = path.join(OUT, file)
-    if (fs.lstatSync(next).isFile()) cb(next, nextOut)
-    else recurseThrough(next, nextOut, cb)
+    if (fs.lstatSync(next).isFile()) cb(next, nextOut, skip)
+    else recurseThrough(config, next, nextOut, cb, outDir)
   })
 }

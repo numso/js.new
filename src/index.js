@@ -19,11 +19,6 @@ const argv = require('yargs')
         boolean: true,
         default: true
       })
-      .option('output', {
-        alias: 'o',
-        describe: 'Output directory',
-        default: '.dist'
-      })
       .option('port', {
         alias: 'p',
         describe: 'Port to listen on',
@@ -42,6 +37,5 @@ const argv = require('yargs')
 if (argv._.includes('build')) {
   require('./build')(argv.path)
 } else {
-  const { path, template, netlify, output, port } = argv
-  require('./dev')(path, template, netlify, output, port)
+  require('./dev')(argv.path, argv.template, argv.netlify, argv.port)
 }

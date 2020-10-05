@@ -2,6 +2,8 @@ module.exports = config => {
   return {
     ...config,
     template: '{{TEMPLATE}}',
-    outputDir: '{{OUTPUT}}'
+    outputDir: '.dist',
+    ignore: /^\./,
+    skipTransform: /\.html$|\.toml$/
   }
 }

@@ -12,10 +12,10 @@ const getConfig = require('./config')
 const startHMR = require('./hmr')
 const { transformMW } = require('./transform')
 
-module.exports = async (dir, template, netlify, output, port) => {
+module.exports = async (dir, template, netlify, port) => {
   await lexer.init
   const BASE = path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir)
-  createProject(BASE, template, { netlify, output })
+  createProject(BASE, template, netlify)
 
   const hmr = startHMR()
   let config
@@ -61,6 +61,7 @@ module.exports = async (dir, template, netlify, output, port) => {
     if (req.url.includes(NOT_FOUND)) return res.writeHead(404).end()
     if (hmr.mount(req, res)) return
     if (!fileExists(req.filePath)) return res.send(indexFile, '.html')
+    if (config.ignore.test(req.fileName)) return res.send(indexFile, '.html')
     if (!req.originalUrl.endsWith('.js')) return res.sendFile(req.filePath)
     transformMW({ BASE, hmr, config, dev: true })(req, res)
   })
@@ -83,14 +84,14 @@ module.exports = async (dir, template, netlify, output, port) => {
   openEditor(BASE)
 }
 
-function createProject (dir, template, opts) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir)
+function createProject (dir, template, netlify) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   if (fs.readdirSync(dir).length === 0) {
     const templatePath = path.join(__dirname, 'templates', template)
     fs.readdirSync(templatePath).forEach(file => {
       fs.copyFileSync(path.join(templatePath, file), path.join(dir, file))
     })
-    if (opts.netlify && !fileExists(path.join(dir, 'netlify.toml'))) {
+    if (netlify && !fileExists(path.join(dir, 'netlify.toml'))) {
       const netlifyPath = path.join(__dirname, 'templates', 'netlify.toml')
       fs.copyFileSync(netlifyPath, path.join(dir, 'netlify.toml'))
     }
@@ -100,7 +101,6 @@ function createProject (dir, template, opts) {
     const contents = fs
       .readFileSync(configPath, 'utf8')
       .replace(/\{\{TEMPLATE\}\}/g, template)
-      .replace(/\{\{OUTPUT\}\}/g, opts.output)
     fs.writeFileSync(path.join(dir, '.js.new.js'), contents)
   }
 }
@@ -110,6 +110,7 @@ function initServer ({ BASE }) {
     req.originalUrl = req.url.split('?mtime')[0]
     req.url = req.originalUrl.replace(SUFFIX, '')
     req.filePath = path.join(BASE, req.url)
+    req.fileName = path.basename(req.filePath)
     res.send = (contents, ext) => {
       res.writeHead(200, { 'Content-Type': mime.lookup(ext) }).end(contents)
     }

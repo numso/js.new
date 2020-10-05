@@ -50,7 +50,9 @@ function transform (url, filePath, { base: BASE, config, dev, onError }) {
     // TODO:: Test out dynamic imports. what happens?
     let [name, isLocal] = rewrite(BASE, contents.substring(s, e), url, config)
     if (isLocal) parsedImports.push(path.join(path.dirname(url), name))
-    if (isLocal && !name.endsWith('.js')) name = name + SUFFIX
+    if (isLocal && !name.endsWith('.js') && !config.skipTransform.test(name)) {
+      name = name + SUFFIX
+    }
     contents = contents.slice(0, s) + name + contents.slice(e)
   })
   return [contents, parsedImports]
