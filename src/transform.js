@@ -59,9 +59,11 @@ function transform (url, filePath, { base: BASE, config, dev, onError }) {
 }
 
 const rewrite = (BASE, name, url, config) => {
-  if (name[0] !== '.') return [`https://cdn.skypack.dev/${name}`, false]
-  // TODO:: handle local imports with absolute paths (starts with /)
-  const base = path.join(BASE, path.dirname(url), name)
+  if (!name[0].startsWith('.') && !name[0].startsWith('/')) {
+    return [`https://cdn.skypack.dev/${name}`, false]
+  }
+  const relative = name[0] === '.' ? path.dirname(url) : ''
+  const base = path.join(BASE, relative, name)
   if (fileExists(base)) return [name, true]
   for (const ext in config.builders) {
     if (fileExists(`${base}${ext}`)) return [`${name}${ext}`, true]
