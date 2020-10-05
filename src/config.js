@@ -35,6 +35,7 @@ import.meta.hot.accept(({ module }) => {
 
 module.exports = () => ({
   template: 'react',
+  outputDir: '.dist',
   theme: {
     fg: '#CCC',
     bg: '#0C0C0C',

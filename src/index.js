@@ -14,6 +14,16 @@ const argv = require('yargs')
         choices: ['react', 'react-ts'],
         default: 'react'
       })
+      .option('netlify', {
+        describe: 'Generates a netlify.toml at time of project creation',
+        boolean: true,
+        default: true
+      })
+      .option('output', {
+        alias: 'o',
+        describe: 'Output directory',
+        default: '.dist'
+      })
       .option('port', {
         alias: 'p',
         describe: 'Port to listen on',
@@ -22,21 +32,16 @@ const argv = require('yargs')
       })
   })
   .command('build [path]', 'build a project', yargs => {
-    yargs
-      .positional('path', {
-        describe: 'Path to your project',
-        type: 'string',
-        default: '.'
-      })
-      .option('output', {
-        alias: 'o',
-        describe: 'Output directory',
-        default: '.dist'
-      })
+    yargs.positional('path', {
+      describe: 'Path to your project',
+      type: 'string',
+      default: '.'
+    })
   }).argv
 
 if (argv._.includes('build')) {
-  require('./build')(argv.path, argv.output)
+  require('./build')(argv.path)
 } else {
-  require('./dev')(argv.path, argv.template, argv.port)
+  const { path, template, netlify, output, port } = argv
+  require('./dev')(path, template, netlify, output, port)
 }

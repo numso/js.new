@@ -12,10 +12,10 @@ const getConfig = require('./config')
 const startHMR = require('./hmr')
 const { transformMW } = require('./transform')
 
-module.exports = async (dir, template, port) => {
+module.exports = async (dir, template, netlify, output, port) => {
   await lexer.init
   const BASE = path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir)
-  createProject(BASE, template)
+  createProject(BASE, template, { netlify, output })
 
   const hmr = startHMR()
   let config
@@ -83,13 +83,25 @@ module.exports = async (dir, template, port) => {
   openEditor(BASE)
 }
 
-function createProject (dir, template) {
-  const templatePath = path.join(__dirname, 'templates', template)
+function createProject (dir, template, opts) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir)
   if (fs.readdirSync(dir).length === 0) {
+    const templatePath = path.join(__dirname, 'templates', template)
     fs.readdirSync(templatePath).forEach(file => {
       fs.copyFileSync(path.join(templatePath, file), path.join(dir, file))
     })
+    if (opts.netlify && !fileExists(path.join(dir, 'netlify.toml'))) {
+      const netlifyPath = path.join(__dirname, 'templates', 'netlify.toml')
+      fs.copyFileSync(netlifyPath, path.join(dir, 'netlify.toml'))
+    }
+  }
+  if (!fileExists(path.join(dir, '.js.new.js'))) {
+    const configPath = path.join(__dirname, 'templates', '.js.new.js')
+    const contents = fs
+      .readFileSync(configPath, 'utf8')
+      .replace(/\{\{TEMPLATE\}\}/g, template)
+      .replace(/\{\{OUTPUT\}\}/g, opts.output)
+    fs.writeFileSync(path.join(dir, '.js.new.js'), contents)
   }
 }
 

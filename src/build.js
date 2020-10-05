@@ -14,10 +14,9 @@ const onError = error => {
   process.exit(1)
 }
 
-module.exports = async (dir, output) => {
+module.exports = async dir => {
   await lexer.init
   const base = configPath(dir)
-  const outDir = configPath(output)
 
   let config = getConfig()
   const customizePath = path.join(base, '.js.new.js')
@@ -26,6 +25,8 @@ module.exports = async (dir, output) => {
   } catch (error) {
     onError(error)
   }
+
+  const outDir = configPath(config.outputDir)
 
   const opts = { base, config, dev: false, onError }
 

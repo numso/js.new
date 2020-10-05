@@ -1,0 +1,15 @@
+[build]
+  base = "/"
+  publish = ".dist"
+  command = "npx js.new build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    X-Powered-By = "js.new"
