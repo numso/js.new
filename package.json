@@ -1,11 +1,12 @@
 {
   "name": "js.new",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "main": "index.js",
   "author": "Dallin Osmun",
   "license": "MIT",
   "bin": {
-    "js.new": "./src/index.js"
+    "js.new": "./src/index.js",
+    "jsnew": "./src/index.js"
   },
   "dependencies": {
     "@babel/core": "^7.10.2",
