@@ -126,6 +126,7 @@ function openBrowser (port) {
 
 function openEditor (dir) {
   if (process.env.NO_EDITOR) return
+  dir = dir.replace(/\\/g, '\\\\')
   childProcess
     .spawn('code', [dir], { detached: true, stdio: 'ignore', shell: true })
     .on('error', () => null)

@@ -9,7 +9,7 @@ const loadMacro = ({ filePath, babel }) => {
   const contents = fs.readFileSync(filePath, 'utf8')
   /* eslint-disable-next-line no-eval */
   return eval(`
-    __dirname="${path.dirname(filePath)}"
+    __dirname="${path.dirname(filePath).replace(/\\/g, '\\\\')}"
     __filename="${filePath}"
     ${babel(contents)}
   `)
