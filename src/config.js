@@ -47,7 +47,7 @@ import.meta.hot.accept(({ module }) => {
 module.exports = () => ({
   template: 'react',
   outputDir: '.dist',
-  ignore: /^\.$/,
+  ignore: /^\./,
   skipTransform: /\.html$|\.toml$/,
   theme: {
     fg: '#CCC',
