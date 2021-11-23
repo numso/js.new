@@ -111,6 +111,7 @@ function initServer ({ BASE }) {
     req.url = req.originalUrl.replace(SUFFIX, '')
     req.filePath = path.join(BASE, req.url)
     req.fileName = path.basename(req.filePath)
+    res.setHeader('Access-Control-Allow-Origin', '*')
     res.send = (contents, ext) => {
       res.writeHead(200, { 'Content-Type': mime.lookup(ext) }).end(contents)
     }
