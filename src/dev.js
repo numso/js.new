@@ -12,10 +12,10 @@ const getConfig = require('./config')
 const startHMR = require('./hmr')
 const { transformMW } = require('./transform')
 
-module.exports = async (dir, template, netlify, port) => {
+module.exports = async (dir, port, opts) => {
   await lexer.init
   const BASE = path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir)
-  createProject(BASE, template, netlify)
+  createProject(BASE, opts.template, opts.netlify)
 
   const hmr = startHMR()
   let config
@@ -81,8 +81,8 @@ module.exports = async (dir, template, netlify, port) => {
   watcher.on('change', handleWatch)
   watcher.on('unlink', handleWatch)
 
-  openBrowser(port)
-  openEditor(BASE)
+  if (opts.open) openBrowser(port)
+  if (opts.editor) openEditor(BASE)
 }
 
 function createProject (dir, template, netlify) {
@@ -134,7 +134,6 @@ function openBrowser (port) {
 }
 
 function openEditor (dir) {
-  if (process.env.NO_EDITOR) return
   dir = dir.replace(/\\/g, '\\\\')
   childProcess
     .spawn('code', [dir], { detached: true, stdio: 'ignore', shell: true })
