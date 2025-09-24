@@ -29,6 +29,7 @@ module.exports = async (dir, template, netlify, port) => {
       console.error(error)
     }
     refreshIndex()
+    startTailwind(BASE, config)
   }
 
   let indexFile
@@ -85,11 +86,12 @@ module.exports = async (dir, template, netlify, port) => {
 }
 
 function createProject (dir, template, netlify) {
+  const ctx = { template }
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   if (fs.readdirSync(dir).length === 0) {
     const templatePath = path.join(__dirname, 'templates', template)
     fs.readdirSync(templatePath).forEach(file => {
-      fs.copyFileSync(path.join(templatePath, file), path.join(dir, file))
+      copyFile(templatePath, dir, file, ctx)
     })
     if (netlify && !fileExists(path.join(dir, 'netlify.toml'))) {
       const netlifyPath = path.join(__dirname, 'templates', 'netlify.toml')
@@ -97,12 +99,18 @@ function createProject (dir, template, netlify) {
     }
   }
   if (!fileExists(path.join(dir, '.js.new.js'))) {
-    const configPath = path.join(__dirname, 'templates', '.js.new.js')
-    const contents = fs
-      .readFileSync(configPath, 'utf8')
-      .replace(/\{\{TEMPLATE\}\}/g, template)
-    fs.writeFileSync(path.join(dir, '.js.new.js'), contents)
+    const src = path.join(__dirname, 'templates')
+    copyFile(src, dir, '.js.new.js', ctx)
   }
+}
+
+function copyFile (src, dest, file, ctx) {
+  const p = path.join(src, file)
+  const contents = fs
+    .readFileSync(p, 'utf8')
+    .replace(/\{\{TEMPLATE\}\}/g, ctx.template)
+    .replace(/\{\{JS_NEW_BASE\}\}/g, path.join(__dirname, '..'))
+  fs.writeFileSync(path.join(dest, file), contents)
 }
 
 function initServer ({ BASE }) {
@@ -132,4 +140,22 @@ function openEditor (dir) {
     .spawn('code', [dir], { detached: true, stdio: 'ignore', shell: true })
     .on('error', () => null)
     .unref()
+}
+
+let tw
+function startTailwind (BASE, config) {
+  if (tw) tw.kill()
+  if (!config.tailwind) return (tw = null)
+  tw = childProcess.spawn(
+    'npx',
+    [
+      '@tailwindcss/cli',
+      '-i',
+      config.tailwind.input,
+      '-o',
+      config.tailwind.output,
+      '--watch'
+    ],
+    { cwd: BASE }
+  )
 }

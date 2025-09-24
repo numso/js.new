@@ -4,6 +4,7 @@ module.exports = config => {
     template: '{{TEMPLATE}}',
     outputDir: '.dist',
     ignore: /^\./,
-    skipTransform: /\.html$|\.toml$/
+    skipTransform: /\.html$|\.toml$/,
+    tailwind: { input: 'input.css', output: 'tailwind.css' }
   }
 }
