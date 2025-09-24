@@ -86,7 +86,7 @@ module.exports = async (dir, port, opts) => {
 }
 
 function createProject (dir, template, netlify) {
-  const ctx = { template }
+  const ctx = { template, node_modules: findNodeModules() }
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   if (fs.readdirSync(dir).length === 0) {
     const templatePath = path.join(__dirname, 'templates', template)
@@ -110,7 +110,15 @@ function copyFile (src, dest, file, ctx) {
     .readFileSync(p, 'utf8')
     .replace(/\{\{TEMPLATE\}\}/g, ctx.template)
     .replace(/\{\{JS_NEW_BASE\}\}/g, path.join(__dirname, '..'))
+    .replace(/\{\{NODE_MODULES\}\}/g, ctx.node_modules)
   fs.writeFileSync(path.join(dest, file), contents)
+}
+
+function findNodeModules () {
+  return [
+    path.join(__dirname, '..', 'node_modules'),
+    path.join(__dirname, '..', '..')
+  ].find(fs.existsSync)
 }
 
 function initServer ({ BASE }) {
