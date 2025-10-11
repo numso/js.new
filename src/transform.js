@@ -36,7 +36,7 @@ function transform (url, filePath, { base: BASE, config, dev, onError }) {
     contents = build(url, filePath, config, dev)
     contents = babel.transformSync(contents, {
       filename: filePath,
-      plugins: [bblJsx, bblCp, bblMeta],
+      plugins: [[bblJsx, config.jsx], bblCp, bblMeta],
       presets: [bblTS]
     }).code
   } catch (error) {

@@ -11,13 +11,13 @@ const argv = require('yargs')
       .option('template', {
         alias: 't',
         describe: 'Template to use',
-        choices: ['react', 'react-ts'],
+        choices: ['react', 'react-ts', 'remix'],
         default: 'react'
       })
       .option('netlify', {
         describe: 'Generates a netlify.toml at time of project creation',
         boolean: true,
-        default: true
+        default: false
       })
       .option('editor', {
         describe: 'Open the project in VS Code on start',

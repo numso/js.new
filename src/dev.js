@@ -54,6 +54,7 @@ module.exports = async (dir, port, opts) => {
       }
     </script>`
     )
+    indexFile = indexFile.replace(/\.(jsx|tsx|ts)/, '.$1.$js_new$.js')
   }
   refreshConfig()
 
